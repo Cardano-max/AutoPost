@@ -58,10 +58,10 @@ export function FestivalToolPreview() {
         <div className="w-6"></div>
       </div>
 
-      {/* Content Area */}
-      <div className="flex-1 p-4 flex gap-4">
+      {/* Content Area - Responsive */}
+      <div className="flex flex-col md:flex-row gap-4 p-4">
         {/* Settings Panel */}
-        <div className="w-1/3">
+        <div className="w-full md:w-1/3 mb-4 md:mb-0">
           <Card>
             <CardContent className="p-4 space-y-4">
               <div className="space-y-2">
@@ -101,19 +101,19 @@ export function FestivalToolPreview() {
         </div>
 
         {/* Preview Panel */}
-        <div className="w-2/3">
+        <div className="w-full md:w-2/3">
           <Card className="h-full">
-            <CardContent className="p-6 flex items-center justify-center">
+            <CardContent className="p-4 md:p-6 flex items-center justify-center">
               <div
                 key={currentFestival}
-                className="w-full max-w-sm transition-all duration-500 ease-in-out transform"
+                className="w-full max-w-xs sm:max-w-sm md:max-w-md transition-all duration-500 ease-in-out transform"
                 style={{
                   opacity: 1,
                   scale: 1,
                 }}
               >
                 <div
-                  className={`bg-gradient-to-r ${festivals[currentFestival].color} rounded-xl p-6 text-white shadow-lg`}
+                  className={`bg-gradient-to-r ${festivals[currentFestival].color} rounded-xl p-4 md:p-6 text-white shadow-lg`}
                 >
                   <div className="flex items-center space-x-2 mb-4">
                     <Calendar className="w-4 h-4" />
@@ -121,7 +121,7 @@ export function FestivalToolPreview() {
                   </div>
                   
                   <div className="space-y-1 mb-6">
-                    <h3 className="text-2xl font-bold">{festivals[currentFestival].name}</h3>
+                    <h3 className="text-xl md:text-2xl font-bold">{festivals[currentFestival].name}</h3>
                     <p className="text-sm text-white/90">{festivals[currentFestival].description}</p>
                     <p className="text-sm text-white/80">{festivals[currentFestival].date}</p>
                   </div>
