@@ -4,6 +4,7 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { FestivalToolPreview } from '@/components/home/FestivalToolPreview';
 
 // Framer motion isn't installed by default, let's create custom animations
 const MotionDiv = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
@@ -34,47 +35,43 @@ export function HeroSection() {
   return (
     <section className="hero-gradient py-20 relative overflow-hidden">
       {/* Decorative shapes */}
-      {floatingShapes.map((shape, index) => (
-        <div
-          key={`floating-shape-${index}-${shape.delay}`}
-          className={shape.className}
-          style={{
-            animationDelay: `${shape.delay}s`,
-            animationDuration: `${3 + Math.random() * 2}s`
-          }}
-        />
-      ))}
+      <div className="absolute top-1/4 -left-12 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 -right-12 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
 
-      <div className="container px-4 mx-auto relative z-10">
-        <div className="max-w-4xl mx-auto text-center">
-          <MotionDiv className="mb-6">
-            <div className="inline-block bg-white dark:bg-gray-800 px-4 py-1 rounded-full text-sm font-medium border mb-4">
-              <span className="text-primary">AUTOPOST AI</span>
+      <div className="container mx-auto px-4 lg:px-8 relative z-10">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="space-y-6">
+            <div className="inline-block bg-primary/10 px-4 py-1 rounded-full">
+              <span className="text-sm font-medium text-primary">AUTOPOST AI</span>
             </div>
-          </MotionDiv>
 
-          <MotionDiv className="mb-6">
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4">
-              Generate Endless Possibilities
-              <span className="block gradient-text">with One Click</span>
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
+              Generate Endless
+              <span className="block gradient-text">Possibilities</span>
+              <span className="block">with One Click</span>
             </h1>
-          </MotionDiv>
 
-          <MotionDiv>
-            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <p className="text-lg text-muted-foreground max-w-xl">
               Through seamlessly integrated AI capabilities, we empower businesses to significantly enhance design efficiency,
               creativity, and market competitiveness.
             </p>
-          </MotionDiv>
 
-          <MotionDiv className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="rounded-full px-8 bg-primary hover:bg-primary/90 pulsing">
-              <Link href="/auth/signup">Start Creating Now</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="rounded-full px-8">
-              <Link href="#features">Explore Features</Link>
-            </Button>
-          </MotionDiv>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
+                <Link href="/auth/signup">Start Creating Now</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href="/tools/festival-post">Try Festival Post</Link>
+              </Button>
+            </div>
+          </div>
+
+          <div className="relative">
+            <div className="absolute -z-10 w-full h-full bg-gradient-to-br from-primary/5 to-transparent rounded-3xl transform rotate-6" />
+            <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden shadow-2xl">
+              <FestivalToolPreview />
+            </div>
+          </div>
         </div>
       </div>
     </section>
