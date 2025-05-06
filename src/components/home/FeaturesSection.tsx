@@ -130,26 +130,36 @@ export function FeaturesSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature) => (
-            <Card
+            <Link
               key={feature.name}
-              className={`feature-card border hover-translate ${feature.featured ? 'ring-2 ring-primary' : ''}`}
+              href={feature.href}
+              className="block group"
             >
-              <CardHeader>
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${feature.color}`}>
-                  {React.createElement(feature.icon, { size: 24 })}
-                </div>
-                <CardTitle className="mt-4">{feature.name}</CardTitle>
-                <CardDescription>{feature.description}</CardDescription>
-              </CardHeader>
-              <CardFooter>
-                <Button asChild variant="ghost" className="group p-0">
-                  <Link href={feature.href} className="flex items-center text-primary">
-                    Try now
-                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
+              <Card
+                className={`feature-card h-full border transition-all duration-300 hover:shadow-lg ${
+                  feature.featured ? 'ring-2 ring-primary' : ''
+                }`}
+              >
+                <CardHeader>
+                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${feature.color} transition-transform duration-300 group-hover:scale-110`}>
+                    {React.createElement(feature.icon, { size: 24 })}
+                  </div>
+                  <CardTitle className="mt-4">{feature.name}</CardTitle>
+                  <CardDescription>{feature.description}</CardDescription>
+                </CardHeader>
+                <CardFooter>
+                  <Button
+                    variant="ghost"
+                    className="group/button p-0 h-auto hover:bg-transparent"
+                  >
+                    <span className="text-primary flex items-center">
+                      Try now
+                      <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover/button:translate-x-1" />
+                    </span>
+                  </Button>
+                </CardFooter>
+              </Card>
+            </Link>
           ))}
         </div>
       </div>
