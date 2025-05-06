@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
@@ -59,9 +61,65 @@ const resources = [
   { name: "Tutorials", href: "/resources/tutorials" },
 ];
 
-interface MainNavProps extends React.HTMLAttributes<HTMLElement> {}
+interface MainNavProps extends React.HTMLAttributes<HTMLElement> {
+  isMobile?: boolean;
+}
 
-export function MainNav({ className, ...props }: MainNavProps) {
+export function MainNav({ className, isMobile, ...props }: MainNavProps) {
+  if (isMobile) {
+    return (
+      <nav className={cn("flex flex-col space-y-4", className)} {...props}>
+        <div className="space-y-2">
+          <div className="font-medium px-2">Tools</div>
+          {tools.map((tool) => (
+            <Link
+              key={tool.href}
+              href={tool.href}
+              className="flex items-center px-2 py-1.5 text-sm rounded-md hover:bg-accent"
+            >
+              {React.createElement(tool.icon, { className: "mr-2 h-4 w-4 text-primary" })}
+              {tool.name}
+            </Link>
+          ))}
+        </div>
+
+        <div className="space-y-2">
+          <div className="font-medium px-2">Templates</div>
+          {templates.map((template) => (
+            <Link
+              key={template.href}
+              href={template.href}
+              className="block px-2 py-1.5 text-sm rounded-md hover:bg-accent"
+            >
+              {template.name}
+            </Link>
+          ))}
+        </div>
+
+        <div className="space-y-2">
+          <div className="font-medium px-2">Resources</div>
+          {resources.map((resource) => (
+            <Link
+              key={resource.href}
+              href={resource.href}
+              className="block px-2 py-1.5 text-sm rounded-md hover:bg-accent"
+            >
+              {resource.name}
+            </Link>
+          ))}
+        </div>
+
+        <Link href="/pricing" className="block px-2 py-1.5 text-sm rounded-md hover:bg-accent">
+          Pricing
+        </Link>
+
+        <Link href="/api-sdk" className="block px-2 py-1.5 text-sm rounded-md hover:bg-accent">
+          API/SDK
+        </Link>
+      </nav>
+    );
+  }
+
   return (
     <nav className={cn("flex items-center space-x-4 lg:space-x-6", className)} {...props}>
       <DropdownMenu>
