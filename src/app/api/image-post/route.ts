@@ -115,13 +115,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for b64_json in response (GPT-Image-1 returns b64_json not url)
-    if (!result?.data?.[0]?.url) {
+    if (!result?.data?.[0]?.b64_json) {
       console.error("[API] Response data structure:", JSON.stringify(result?.data || {}).substring(0, 100));
       throw new Error("No image was generated");
     }
 
     // Get the generated image as base64
-    const imageUrl = result.data[0].url;
+    const imageBase64 = result.data[0].b64_json;
+    
+    // Convert base64 to a data URL for direct embedding
+    const imageUrl = `data:image/png;base64,${imageBase64}`;
     
     // Return the generated image data and details
     return NextResponse.json({
