@@ -102,7 +102,7 @@ export default function FestivalPostPage() {
             </div>
             <div className="mt-8">
               <Button asChild size="lg">
-                <Link href="/auth/signup?feature=festival-post">Get Started</Link>
+                <Link href="/tools/festival-post/generator">Get Started</Link>
               </Button>
             </div>
           </div>
@@ -180,7 +180,7 @@ export default function FestivalPostPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg">
-              <Link href="/auth/signup?feature=festival-post">Start Free Trial</Link>
+              <Link href="/tools/festival-post/generator">Start Free Trial</Link>
             </Button>
             <Button asChild variant="outline" size="lg">
               <Link href="/contact">Contact Sales</Link>
