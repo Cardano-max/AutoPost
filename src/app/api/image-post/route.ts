@@ -57,9 +57,8 @@ export async function POST(request: NextRequest) {
     const marketingPrompt = generateMarketingPrompt(productDetails, productType);
     console.log(`[API] Generated prompt: ${marketingPrompt.substring(0, 100)}...`);
 
-    // Convert file to ArrayBuffer
+    // Get the raw image data
     const imageBuffer = await imageFile.arrayBuffer();
-    const imageArray = new Uint8Array(imageBuffer);
 
     // Call OpenAI API with retry logic
     let result;
@@ -78,11 +77,15 @@ export async function POST(request: NextRequest) {
         // If we had a moderation error, use a simplified prompt
         const promptToUse = hadModerationError ? generateFallbackPrompt(productDetails) : marketingPrompt;
         
+        // Create a proper File object from the image buffer
+        const imageUint8Array = new Uint8Array(imageBuffer);
+        const imageFile = new File([imageUint8Array], "image.png", { type: "image/png" });
+        
+        // Use the proper OpenAI v4 SDK format for images.edit
         result = await openai.images.edit({
-          model: "gpt-image-1", // Using GPT-Image-1 as requested by client
+          model: "gpt-image-1", // Using GPT-Image-1 as it's the newest and most advanced model
           prompt: promptToUse,
-          image: imageArray as unknown as File,
-          quality: "low", // Using standard quality to optimize for speed and cost
+          image: imageFile,
           n: 1
         });
         
