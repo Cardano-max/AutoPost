@@ -118,7 +118,7 @@ export function ImageGenerationForm({ onBack }: ImageGenerationFormProps) {
         }
         
         const json = await res.json();
-        setResultImage(json.imageData);
+        setResultImage(json.imageUrl);
         
         // Success, break out of retry loop
         break;

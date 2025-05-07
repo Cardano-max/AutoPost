@@ -88,8 +88,7 @@ export async function POST(request: NextRequest) {
           image: imageFile,
           n: 1,
           quality: "low", // Use low quality to save credits during testing
-          size: "1024x1024", // Standard size
-          response_format: "b64_json" // Request base64 encoded image
+          size: "1024x1024" // Standard size
         });
         
         console.log("[API] Successfully generated image");
@@ -116,22 +115,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for b64_json in response (GPT-Image-1 returns b64_json not url)
-    if (!result?.data?.[0]?.b64_json) {
+    if (!result?.data?.[0]?.url) {
       console.error("[API] Response data structure:", JSON.stringify(result?.data || {}).substring(0, 100));
       throw new Error("No image was generated");
     }
 
     // Get the generated image as base64
-    const imageBase64 = result.data[0].b64_json;
+    const imageUrl = result.data[0].url;
     
-    // Convert base64 to a data URL for direct embedding
-    const imageDataUrl = `data:image/png;base64,${imageBase64}`;
-
     // Return the generated image data and details
     return NextResponse.json({
       success: true,
       message: 'Marketing image generated successfully',
-      imageData: imageDataUrl,
+      imageUrl,
       productDetails,
       usedModel: "gpt-image-1"
     });
