@@ -4,12 +4,22 @@ import React, { useState, useRef } from "react";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, Image as ImageIcon, Info, Upload, Loader2, RefreshCw, Download } from 'lucide-react';
+import { 
+  ChevronRight, 
+  Image as ImageIcon, 
+  Upload, 
+  Loader2, 
+  RefreshCw, 
+  Download,
+  Phone,
+  Share2
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ImagePostPage() {
+  // Form state
   const [form, setForm] = useState({
     companyName: "",
     productName: "",
@@ -17,12 +27,18 @@ export default function ImagePostPage() {
     tagline: "",
     address: "",
     productType: "general",
+    phoneNumber: "", // Added for WhatsApp integration
     image: null as File | null,
   });
+  
+  // UI state
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [resultImage, setResultImage] = useState<string | null>(null);
+  const [apiRetries, setApiRetries] = useState(0);
+  const [whatsappSent, setWhatsappSent] = useState(false);
+  const [whatsappLoading, setWhatsappLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle image upload
@@ -59,42 +75,66 @@ export default function ImagePostPage() {
     return true;
   };
 
-  // Handle form submit
+  // Handle form submit with retries
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+    
     setLoading(true);
     setError("");
     setResultImage(null);
-    try {
-      // Prepare form data
-      const data = new FormData();
-      data.append("company_name", form.companyName);
-      data.append("product_name", form.productName);
-      data.append("price", form.price);
-      data.append("tagline", form.tagline);
-      data.append("address", form.address);
-      data.append("product_type", form.productType);
-      if (form.image) data.append("image", form.image);
+    setApiRetries(0);
+    
+    const MAX_RETRIES = 3;
+    let currentRetry = 0;
+    
+    while (currentRetry < MAX_RETRIES) {
+      try {
+        console.log(`API call attempt ${currentRetry + 1} of ${MAX_RETRIES}`);
+        setApiRetries(currentRetry);
+        
+        // Prepare form data
+        const data = new FormData();
+        data.append("company_name", form.companyName);
+        data.append("product_name", form.productName);
+        data.append("price", form.price);
+        data.append("tagline", form.tagline);
+        data.append("address", form.address);
+        data.append("product_type", form.productType);
+        if (form.phoneNumber) data.append("phone_number", form.phoneNumber);
+        if (form.image) data.append("image", form.image);
 
-      // POST to our new API endpoint
-      const res = await fetch("/api/image-post", { 
-        method: "POST", 
-        body: data 
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to generate image");
+        // POST to our API endpoint
+        const res = await fetch("/api/image-post", { 
+          method: "POST", 
+          body: data 
+        });
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || "Failed to generate image");
+        }
+        
+        const json = await res.json();
+        setResultImage(json.imageUrl);
+        
+        // Success, break out of retry loop
+        break;
+      } catch (err: any) {
+        console.error(`Attempt ${currentRetry + 1} failed:`, err.message);
+        currentRetry++;
+        
+        // If we've exhausted all retries, show error
+        if (currentRetry === MAX_RETRIES) {
+          setError(`Failed after ${MAX_RETRIES} attempts: ${err.message || "Unknown error"}. Please try again.`);
+        } else {
+          // Wait before next retry (increasing delay)
+          await new Promise(resolve => setTimeout(resolve, 1000 * currentRetry));
+        }
       }
-      
-      const json = await res.json();
-      setResultImage(json.imageUrl);
-    } catch (err: any) {
-      setError(err.message || "Failed to generate image. Please try again.");
-    } finally {
-      setLoading(false);
     }
+    
+    setLoading(false);
   };
 
   // Reset form
@@ -106,11 +146,13 @@ export default function ImagePostPage() {
       tagline: "",
       address: "",
       productType: "general",
+      phoneNumber: "",
       image: null,
     });
     setImagePreview(null);
     setResultImage(null);
     setError("");
+    setWhatsappSent(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -134,9 +176,40 @@ export default function ImagePostPage() {
       setError('Failed to download image');
     }
   };
+  
+  // Send image to WhatsApp
+  const sendToWhatsApp = async () => {
+    if (!resultImage || !form.phoneNumber) return;
+    
+    setWhatsappLoading(true);
+    try {
+      // Create WhatsApp message with image URL
+      const data = new FormData();
+      data.append("imageUrl", resultImage);
+      data.append("phoneNumber", form.phoneNumber);
+      data.append("message", `Here's your marketing image for ${form.productName}!`);
+      
+      const response = await fetch("/api/send-whatsapp", {
+        method: "POST",
+        body: data
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to send WhatsApp message");
+      }
+      
+      setWhatsappSent(true);
+    } catch (err: any) {
+      console.error('Error sending WhatsApp:', err);
+      setError('Failed to send WhatsApp: ' + err.message);
+    } finally {
+      setWhatsappLoading(false);
+    }
+  };
 
   return (
-    <div className="container py-12">
+    <div className="container py-8">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center mb-2 text-sm text-muted-foreground">
           <Link href="/tools" className="hover:text-foreground">
@@ -155,188 +228,6 @@ export default function ImagePostPage() {
             <p className="text-muted-foreground">
               AI-driven marketing image generator with brand integration
             </p>
-          </div>
-        </div>
-
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 mb-8">
-          <Info className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-          <div>
-            <p className="text-amber-800 font-medium">
-              Transform ordinary product photos into powerful marketing assets
-            </p>
-            <p className="text-sm text-amber-700">
-              Our AI system automatically applies your brand elements and optimizes your images for maximum impact.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          <div>
-            <h2 className="text-2xl font-bold mb-4">
-              Boost Your Marketing with AI-Powered Images
-            </h2>
-            <p className="text-muted-foreground mb-6">
-              Our Image Post Generator uses advanced AI to create professional, on-brand marketing images
-              in seconds. Perfect for social media posts, banners, ads, and more.
-            </p>
-
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0 mt-0.5">
-                  <Upload className="h-4 w-4 text-orange-700" />
-                </div>
-                <div>
-                  <h3 className="font-medium">Upload your product images</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Start with any product photo or image you'd like to enhance.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0 mt-0.5">
-                  <svg className="h-4 w-4 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-medium">Add your branding and text</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Our AI will automatically integrate your logo, colors, and promotional text.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0 mt-0.5">
-                  <svg className="h-4 w-4 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-medium">Choose from multiple templates</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Select from various layouts and styles that match your marketing goals.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0 mt-0.5">
-                  <svg className="h-4 w-4 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-medium">Download and share instantly</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Get high-quality images ready for immediate use on any platform.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8">
-              <Button asChild size="lg">
-                <Link href="/auth/signup?feature=image-post">Start Creating Images</Link>
-              </Button>
-            </div>
-          </div>
-
-          <Card className="overflow-hidden border-orange-200">
-            <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50">
-              <CardTitle>Image Post Examples</CardTitle>
-              <CardDescription>See how our AI transforms ordinary product photos</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="aspect-[4/3] bg-gradient-to-br from-orange-200/20 to-amber-100/30 flex items-center justify-center">
-                <div className="text-center p-8">
-                  <div className="w-16 h-16 mx-auto mb-4 text-orange-300">
-                    <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <p className="text-muted-foreground font-medium">Example Images Would Appear Here</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Transform product photos into professional marketing assets with branded elements,
-                    promotional text, and eye-catching designs.
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 border-t">
-                <div className="p-4 border-r text-center">
-                  <p className="text-sm font-medium">Before</p>
-                  <p className="text-xs text-muted-foreground">Plain product photo</p>
-                </div>
-                <div className="p-4 text-center">
-                  <p className="text-sm font-medium">After</p>
-                  <p className="text-xs text-muted-foreground">AI-enhanced marketing image</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold mb-6 text-center">Key Features</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center mb-2">
-                  <svg className="h-5 w-5 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <CardTitle className="text-lg">Multiple Templates</CardTitle>
-                <CardDescription>
-                  Choose from a variety of layouts optimized for different platforms and purposes
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center mb-2">
-                  <svg className="h-5 w-5 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                  </svg>
-                </div>
-                <CardTitle className="text-lg">Brand Integration</CardTitle>
-                <CardDescription>
-                  Automatically apply your logo, colors, and fonts to maintain brand consistency
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center mb-2">
-                  <svg className="h-5 w-5 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-                  </svg>
-                </div>
-                <CardTitle className="text-lg">AI Enhancement</CardTitle>
-                <CardDescription>
-                  Smart image optimization, background removal, and auto-adjustment for perfect results
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-8 rounded-lg text-center mb-8">
-          <h2 className="text-2xl font-bold mb-4">Ready to create eye-catching marketing images?</h2>
-          <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Join thousands of businesses using AUTOPOST's Image Post Generator to create
-            professional marketing visuals in seconds.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg">
-              <Link href="/auth/signup?feature=image-post">Start Free Trial</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link href="/pricing">View Pricing</Link>
-            </Button>
           </div>
         </div>
 
@@ -454,8 +345,33 @@ export default function ImagePostPage() {
                   </SelectContent>
                 </Select>
               </div>
+              {/* WhatsApp Phone Number */}
+              <div>
+                <Label htmlFor="phoneNumber">WhatsApp Number (for delivery)</Label>
+                <Input
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  value={form.phoneNumber}
+                  onChange={handleChange}
+                  placeholder="e.g. +919876543210"
+                  disabled={loading}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Include country code. Optional - for sending the image via WhatsApp.
+                </p>
+              </div>
               {/* Error */}
-              {error && <div className="text-red-500 text-sm p-2 bg-red-50 rounded">{error}</div>}
+              {error && (
+                <div className="text-red-500 text-sm p-3 bg-red-50 rounded border border-red-100">
+                  {error}
+                </div>
+              )}
+              {/* API Retry Info */}
+              {apiRetries > 0 && loading && (
+                <div className="text-amber-700 text-sm p-2 bg-amber-50 rounded border border-amber-100">
+                  Retrying... (Attempt {apiRetries + 1}/3)
+                </div>
+              )}
               {/* Actions */}
               <div className="flex gap-3">
                 <Button type="submit" className="w-full flex items-center justify-center" disabled={loading}>
@@ -476,13 +392,13 @@ export default function ImagePostPage() {
             <CardHeader>
               <CardTitle className="text-xl">Generated Marketing Image</CardTitle>
               <CardDescription>
-                Created with AI using OpenAI's Image-1 model
+                Created with AI using OpenAI's GPT-Image-1 model
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col items-center">
                 <img src={resultImage} alt="Generated" className="w-full max-w-md mx-auto rounded-lg shadow-lg mb-6" />
-                <div className="flex gap-4 justify-center">
+                <div className="flex flex-wrap gap-4 justify-center">
                   <Button 
                     variant="outline"
                     className="flex items-center gap-2"
@@ -500,6 +416,40 @@ export default function ImagePostPage() {
                     Create Another
                   </Button>
                 </div>
+                
+                {/* WhatsApp Integration */}
+                {form.phoneNumber && (
+                  <div className="mt-6 w-full max-w-md">
+                    <div className="border-t pt-4 mt-2">
+                      <h3 className="font-medium mb-3">Send via WhatsApp</h3>
+                      
+                      {whatsappSent ? (
+                        <div className="bg-green-50 text-green-700 p-3 rounded border border-green-100 flex items-center gap-2">
+                          <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          Image successfully sent to WhatsApp!
+                        </div>
+                      ) : (
+                        <Button 
+                          variant="default" 
+                          className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700" 
+                          onClick={sendToWhatsApp}
+                          disabled={whatsappLoading}
+                        >
+                          {whatsappLoading ? (
+                            <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                          ) : (
+                            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                            </svg>
+                          )}
+                          {whatsappLoading ? "Sending..." : "Send to WhatsApp"}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
