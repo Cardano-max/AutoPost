@@ -185,63 +185,67 @@ function generateMarketingPrompt(productDetails: Record<string, string>, product
   const { companyName, productName, price, tagline, address } = productDetails;
   
   // Base master template for all product types
-  let prompt = `Create a stunning, professional marketing poster that looks like it was crafted by an expert graphic designer:
+  let prompt = `Create a stunning, professional marketing poster that looks like it was crafted by an expert graphic designer, exactly matching this layout:
 
 1. SUBJECT TREATMENT (HIGHEST PRIORITY):
    - Keep the original subject 100% UNCHANGED - preserve exact appearance, positioning and all details
    - Do NOT modify, filter, stylize or alter the original subject in ANY way
    - Maintain all original colors, textures, reflections and details of the subject perfectly
+   - Center the product image as the focal point in the middle of the poster
 
-2. ELEMENT POSITIONING (MAINTAIN CONSISTENT PLACEMENT):
-   - Company name "${companyName}" must be at the TOP of the poster
-   - Product name "${productName}" must be centered ABOVE the product
-   - Price "${price}" must be positioned in the BOTTOM-RIGHT corner`;
+2. EXACT ELEMENT POSITIONING (FOLLOW PRECISELY):
+   - Company name "${companyName}" must be at the TOP-LEFT of the poster in a bold, attention-grabbing style
+   - Product name "${productName}" must be centered DIRECTLY ABOVE the product with proper spacing
+   - Price "${price}" must be positioned in the BOTTOM-RIGHT corner in a distinct highlight box`;
    
   // Add optional elements if provided
   if (tagline) {
-    prompt += `\n   - Tagline "${tagline}" must be placed BELOW the product`;
+    prompt += `\n   - Tagline "${tagline}" must be placed BELOW the product in LARGE BOLD TEXT spanning the width`;
   }
   if (address) {
-    prompt += `\n   - Address "${address}" must be at the VERY BOTTOM in a single horizontal line`;
+    prompt += `\n   - Address "${address}" must be at the VERY BOTTOM in a FULL-WIDTH BAR with centered text`;
   }
 
   // Product-specific templates
   if (productType.toLowerCase() === 'beverage') {
     prompt += `\n
 3. BEVERAGE-SPECIFIC ENHANCEMENTS:
-   - Center the beverage as the focal point
+   - Center the beverage as the focal point against a clean background
    - Remove the original background completely
    - Keep whipped cream, garnishes, and toppings visible and appetizing
    - Add subtle steam effects for hot drinks or condensation for cold drinks
-   - Enhance beverage colors for visual appeal`;
+   - Enhance beverage colors for visual appeal while keeping the product authentic`;
   } else if (productType.toLowerCase() === 'food') {
     prompt += `\n
 3. FOOD-SPECIFIC ENHANCEMENTS:
-   - Center the food item as the focal point
+   - Center the food item as the focal point against a clean background
    - Remove the original background completely
    - Enhance food textures and colors for appetite appeal
    - Add steam effects for hot items or fresh appearance for cold items
-   - Ensure the food looks perfectly prepared`;
+   - Ensure the food looks perfectly prepared while keeping the product authentic`;
   } else {
     // General product
     prompt += `\n
-3. DYNAMIC DESIGN ELEMENTS (USE AI REASONING FOR BEST RESULTS):
-   - Choose the best fonts, colors, and styling based on the specific product and overall design
-   - Determine the optimal size, weight, and visual treatment for each text element
-   - Apply professional design techniques that best complement this specific product
-   - Use your reasoning to create a cohesive color palette that enhances this particular subject
-   - Adapt the background style to suit this specific product while keeping text positions fixed`;
+3. DESIGN ENHANCEMENTS: (USE AI REASONING FOR BEST RESULTS):
+   - Create a clean background that emphasizes the product
+   - Apply a professional color scheme that complements the product
+   - Make the price stand out with appropriate highlighting
+   - Use your expertise as a commercial designer to select colors, fonts, and styling
+   - Create a professional, retail/e-commerce style marketing design`;
   }
 
   // Technical excellence section for all types
   prompt += `\n
-4. TECHNICAL EXCELLENCE:
-   - Maintain exact original aspect ratio
-   - Keep safe margins for all text to prevent any edge cropping
-   - Ensure perfect readability of all text at various viewing sizes
-   - Create pixel-perfect alignment of all design elements
+4. TECHNICAL EXCELLENCE & STYLING: 
+   - Use a rectangular poster format with clean borders
+   - Choose appropriate fonts, colors, and styling based on your expertise as a commercial designer
+   - Determine the optimal visual treatment for each text element
+   - Apply professional design techniques that best complement this specific product
+   - Create a cohesive color palette that enhances this particular subject
+   - Ensure all text has perfect contrast against its background for readability
+   - Create a balanced, professional design that follows modern marketing principles
 
-The final result must look like it was created by a professional graphic designer with years of experience in marketing design, with impeccable attention to detail, perfect visual balance, and a high-end aesthetic while keeping the original subject completely untouched.`;
+The final result must match the specified layout EXACTLY with the company name at top-left, product name centered above the product, product in the middle, tagline in large text below, price in a highlight box at bottom-right, and address in a bar at the very bottom. As an expert commercial designer, use your judgment to select the most appropriate colors, fonts, and styling that will create an appealing, professional marketing poster.`;
   
   return prompt;
 } 

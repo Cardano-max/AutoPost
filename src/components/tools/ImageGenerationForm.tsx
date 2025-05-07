@@ -383,7 +383,7 @@ export function ImageGenerationForm({ onBack }: ImageGenerationFormProps) {
           <CardHeader>
             <CardTitle className="text-xl">Generated Marketing Image</CardTitle>
             <CardDescription>
-              Created with AI using OpenAI's DALL-E 2 model
+              Created with AI - Use with Caution
             </CardDescription>
           </CardHeader>
           <CardContent>
