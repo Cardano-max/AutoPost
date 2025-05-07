@@ -1,12 +1,140 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useRef } from "react";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, Image as ImageIcon, Info, Upload } from 'lucide-react';
+import { ChevronRight, Image as ImageIcon, Info, Upload, Loader2, RefreshCw, Download } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ImagePostPage() {
+  const [form, setForm] = useState({
+    companyName: "",
+    productName: "",
+    price: "",
+    tagline: "",
+    address: "",
+    productType: "general",
+    image: null as File | null,
+  });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [resultImage, setResultImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle image upload
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setForm((f) => ({ ...f, image: file }));
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setImagePreview(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setImagePreview(null);
+    }
+  };
+
+  // Handle form field change
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setForm((f) => ({ ...f, [name]: value }));
+  };
+
+  // Handle select change
+  const handleSelectChange = (name: string, value: string) => {
+    setForm((f) => ({ ...f, [name]: value }));
+  };
+
+  // Validate required fields
+  const validate = () => {
+    if (!form.companyName || !form.productName || !form.price || !form.image) {
+      setError("Please fill all required fields and upload an image.");
+      return false;
+    }
+    setError("");
+    return true;
+  };
+
+  // Handle form submit
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+    setLoading(true);
+    setError("");
+    setResultImage(null);
+    try {
+      // Prepare form data
+      const data = new FormData();
+      data.append("company_name", form.companyName);
+      data.append("product_name", form.productName);
+      data.append("price", form.price);
+      data.append("tagline", form.tagline);
+      data.append("address", form.address);
+      data.append("product_type", form.productType);
+      if (form.image) data.append("image", form.image);
+
+      // POST to our new API endpoint
+      const res = await fetch("/api/image-post", { 
+        method: "POST", 
+        body: data 
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to generate image");
+      }
+      
+      const json = await res.json();
+      setResultImage(json.imageUrl);
+    } catch (err: any) {
+      setError(err.message || "Failed to generate image. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reset form
+  const handleReset = () => {
+    setForm({
+      companyName: "",
+      productName: "",
+      price: "",
+      tagline: "",
+      address: "",
+      productType: "general",
+      image: null,
+    });
+    setImagePreview(null);
+    setResultImage(null);
+    setError("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // Handle image download
+  const handleDownload = async () => {
+    if (!resultImage) return;
+    
+    try {
+      const response = await fetch(resultImage);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${form.productName.replace(/\s+/g, '-').toLowerCase()}-marketing-image.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Error downloading image:', err);
+      setError('Failed to download image');
+    }
+  };
+
   return (
     <div className="container py-12">
       <div className="max-w-4xl mx-auto">
@@ -211,6 +339,171 @@ export default function ImagePostPage() {
             </Button>
           </div>
         </div>
+
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <ImageIcon className="h-6 w-6 text-orange-700" />
+              </div>
+              <CardTitle className="text-2xl">Image Post Generator</CardTitle>
+            </div>
+            <p className="text-muted-foreground text-sm mt-2">
+              Upload your product image and details to generate a professional marketing image with your brand.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Image Upload */}
+              <div>
+                <Label htmlFor="image" className="block mb-2 font-medium">Product Image <span className="text-red-500">*</span></Label>
+                <div className="flex items-center gap-4">
+                  <Input
+                    id="image"
+                    name="image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    ref={fileInputRef}
+                    className="w-full"
+                    disabled={loading}
+                  />
+                  {imagePreview && (
+                    <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded border" />
+                  )}
+                </div>
+              </div>
+              {/* Company Name */}
+              <div>
+                <Label htmlFor="companyName">Company Name <span className="text-red-500">*</span></Label>
+                <Input
+                  id="companyName"
+                  name="companyName"
+                  value={form.companyName}
+                  onChange={handleChange}
+                  placeholder="Your Company"
+                  required
+                  disabled={loading}
+                />
+              </div>
+              {/* Product Name */}
+              <div>
+                <Label htmlFor="productName">Product Name <span className="text-red-500">*</span></Label>
+                <Input
+                  id="productName"
+                  name="productName"
+                  value={form.productName}
+                  onChange={handleChange}
+                  placeholder="Product Name"
+                  required
+                  disabled={loading}
+                />
+              </div>
+              {/* Price */}
+              <div>
+                <Label htmlFor="price">Price <span className="text-red-500">*</span></Label>
+                <Input
+                  id="price"
+                  name="price"
+                  value={form.price}
+                  onChange={handleChange}
+                  placeholder="e.g. ₹499"
+                  required
+                  disabled={loading}
+                />
+              </div>
+              {/* Tagline */}
+              <div>
+                <Label htmlFor="tagline">Tagline</Label>
+                <Input
+                  id="tagline"
+                  name="tagline"
+                  value={form.tagline}
+                  onChange={handleChange}
+                  placeholder="e.g. Best in class!"
+                  disabled={loading}
+                />
+              </div>
+              {/* Address */}
+              <div>
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  name="address"
+                  value={form.address}
+                  onChange={handleChange}
+                  placeholder="e.g. 123 Main St, Mumbai"
+                  disabled={loading}
+                />
+              </div>
+              {/* Product Type */}
+              <div>
+                <Label htmlFor="productType">Product Type</Label>
+                <Select 
+                  disabled={loading}
+                  value={form.productType} 
+                  onValueChange={(value) => handleSelectChange("productType", value)}
+                >
+                  <SelectTrigger id="productType">
+                    <SelectValue placeholder="Select product type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="food">Food</SelectItem>
+                    <SelectItem value="beverage">Beverage</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* Error */}
+              {error && <div className="text-red-500 text-sm p-2 bg-red-50 rounded">{error}</div>}
+              {/* Actions */}
+              <div className="flex gap-3">
+                <Button type="submit" className="w-full flex items-center justify-center" disabled={loading}>
+                  {loading ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : <Upload className="h-5 w-5 mr-2" />}
+                  {loading ? "Generating..." : "Generate Image"}
+                </Button>
+                <Button type="button" variant="outline" className="w-12 p-0" onClick={handleReset} disabled={loading} title="Reset">
+                  <RefreshCw className="h-5 w-5" />
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Result */}
+        {resultImage && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="text-xl">Generated Marketing Image</CardTitle>
+              <CardDescription>
+                Created with AI using OpenAI's Image-1 model
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center">
+                <img src={resultImage} alt="Generated" className="w-full max-w-md mx-auto rounded-lg shadow-lg mb-6" />
+                <div className="flex gap-4 justify-center">
+                  <Button 
+                    variant="outline"
+                    className="flex items-center gap-2"
+                    onClick={handleDownload}
+                  >
+                    <Download className="h-4 w-4" />
+                    Download Image
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    onClick={handleReset}
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Create Another
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
