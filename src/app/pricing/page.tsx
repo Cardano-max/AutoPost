@@ -4,60 +4,57 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check } from 'lucide-react';
 
-// Pricing plans data
+// Updated pricing plans data
 const pricingPlans = [
   {
-    name: 'Starter',
-    description: 'Perfect for small businesses just getting started with marketing automation.',
+    name: 'Festival Post Only',
+    description: 'Send up to 250 festival images per year automatically to your WhatsApp. Perfect for businesses focused on festival greetings.',
     price: '₹999',
-    period: 'per month',
+    period: 'per year',
     features: [
-      'Up to 50 Festival Posts per month',
-      'Up to 100 Image Posts per month',
-      'Up to 50 Insta Posts per month',
-      'Basic WhatsApp integration',
-      'Email support',
+      'Up to 250 Festival Posts per year',
+      'Automatic WhatsApp delivery',
+      'AI-generated festival images',
+      'No manual scheduling needed',
+      'Basic support',
     ],
-    cta: 'Start Free Trial',
-    href: '/auth/signup?plan=starter',
+    cta: 'Get Festival Plan',
+    href: '/auth/signup?plan=festival',
     popular: false,
   },
   {
-    name: 'Professional',
-    description: 'Ideal for growing businesses with regular marketing needs.',
-    price: '₹2,499',
-    period: 'per month',
+    name: 'All 8 Features',
+    description: 'Access all 8 core marketing automation tools for a single annual price. Great for growing businesses.',
+    price: '₹3,600',
+    period: 'per year',
     features: [
-      'Up to 200 Festival Posts per month',
+      'All 8 core features included',
+      'Unlimited Festival Posts',
       'Unlimited Image Posts',
-      'Up to 200 Insta Posts per month',
-      'Full WhatsApp Business API integration',
-      'All basic features',
-      'Email & chat support',
-      'Team collaboration tools'
+      'WhatsApp & Email delivery',
+      'AI-powered content creation',
+      'Priority support',
     ],
-    cta: 'Start Free Trial',
-    href: '/auth/signup?plan=professional',
+    cta: 'Get 8-Feature Plan',
+    href: '/auth/signup?plan=8features',
     popular: true,
   },
   {
-    name: 'Enterprise',
-    description: 'For large organizations with advanced marketing automation needs.',
-    price: 'Custom',
-    period: 'contact for pricing',
+    name: 'All 14 Features',
+    description: 'Unlock the full power of AUTOPOST with all 14 features for advanced marketing automation.',
+    price: '₹6,000',
+    period: 'per year',
     features: [
-      'Unlimited Festival Posts',
-      'Unlimited Image Posts',
-      'Unlimited Insta Posts',
-      'Custom WhatsApp & Email integration',
-      'All professional features',
-      'Dedicated account manager',
-      'Priority support',
+      'All 14 features included',
+      'Unlimited Festival & Image Posts',
+      'All delivery channels',
+      'Advanced analytics',
       'Custom branding',
-      'API access'
+      'Premium support',
+      'API access',
     ],
-    cta: 'Contact Sales',
-    href: '/contact',
+    cta: 'Get All Features',
+    href: '/auth/signup?plan=allfeatures',
     popular: false,
   }
 ];
@@ -68,7 +65,7 @@ export default function PricingPage() {
       <div className="max-w-3xl mx-auto text-center mb-12">
         <h1 className="text-3xl md:text-5xl font-bold mb-4">Simple, Transparent Pricing</h1>
         <p className="text-lg text-muted-foreground">
-          Choose the plan that's right for your business. All plans include a 14-day free trial.
+          Choose the plan that's right for your business. All plans are billed annually.
         </p>
       </div>
 
