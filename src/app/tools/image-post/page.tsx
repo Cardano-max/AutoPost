@@ -11,203 +11,15 @@ import {
   Loader2, 
   RefreshCw, 
   Download,
-  Phone,
-  Share2
+  ArrowRight
 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Import the ImageGenerationForm component
+import { ImageGenerationForm } from '@/components/tools/ImageGenerationForm';
 
 export default function ImagePostPage() {
-  // Form state
-  const [form, setForm] = useState({
-    companyName: "",
-    productName: "",
-    price: "",
-    tagline: "",
-    address: "",
-    productType: "general",
-    phoneNumber: "", // Added for WhatsApp integration
-    image: null as File | null,
-  });
+  const [showForm, setShowForm] = useState(false);
   
-  // UI state
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [resultImage, setResultImage] = useState<string | null>(null);
-  const [apiRetries, setApiRetries] = useState(0);
-  const [whatsappSent, setWhatsappSent] = useState(false);
-  const [whatsappLoading, setWhatsappLoading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Handle image upload
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setForm((f) => ({ ...f, image: file }));
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setImagePreview(ev.target?.result as string);
-      reader.readAsDataURL(file);
-    } else {
-      setImagePreview(null);
-    }
-  };
-
-  // Handle form field change
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
-  };
-
-  // Handle select change
-  const handleSelectChange = (name: string, value: string) => {
-    setForm((f) => ({ ...f, [name]: value }));
-  };
-
-  // Validate required fields
-  const validate = () => {
-    if (!form.companyName || !form.productName || !form.price || !form.image) {
-      setError("Please fill all required fields and upload an image.");
-      return false;
-    }
-    setError("");
-    return true;
-  };
-
-  // Handle form submit with retries
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
-    
-    setLoading(true);
-    setError("");
-    setResultImage(null);
-    setApiRetries(0);
-    
-    const MAX_RETRIES = 3;
-    let currentRetry = 0;
-    
-    while (currentRetry < MAX_RETRIES) {
-      try {
-        console.log(`API call attempt ${currentRetry + 1} of ${MAX_RETRIES}`);
-        setApiRetries(currentRetry);
-        
-        // Prepare form data
-        const data = new FormData();
-        data.append("company_name", form.companyName);
-        data.append("product_name", form.productName);
-        data.append("price", form.price);
-        data.append("tagline", form.tagline);
-        data.append("address", form.address);
-        data.append("product_type", form.productType);
-        if (form.phoneNumber) data.append("phone_number", form.phoneNumber);
-        if (form.image) data.append("image", form.image);
-
-        // POST to our API endpoint
-        const res = await fetch("/api/image-post", { 
-          method: "POST", 
-          body: data 
-        });
-        
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || "Failed to generate image");
-        }
-        
-        const json = await res.json();
-        setResultImage(json.imageUrl);
-        
-        // Success, break out of retry loop
-        break;
-      } catch (err: any) {
-        console.error(`Attempt ${currentRetry + 1} failed:`, err.message);
-        currentRetry++;
-        
-        // If we've exhausted all retries, show error
-        if (currentRetry === MAX_RETRIES) {
-          setError(`Failed after ${MAX_RETRIES} attempts: ${err.message || "Unknown error"}. Please try again.`);
-        } else {
-          // Wait before next retry (increasing delay)
-          await new Promise(resolve => setTimeout(resolve, 1000 * currentRetry));
-        }
-      }
-    }
-    
-    setLoading(false);
-  };
-
-  // Reset form
-  const handleReset = () => {
-    setForm({
-      companyName: "",
-      productName: "",
-      price: "",
-      tagline: "",
-      address: "",
-      productType: "general",
-      phoneNumber: "",
-      image: null,
-    });
-    setImagePreview(null);
-    setResultImage(null);
-    setError("");
-    setWhatsappSent(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  // Handle image download
-  const handleDownload = async () => {
-    if (!resultImage) return;
-    
-    try {
-      const response = await fetch(resultImage);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${form.productName.replace(/\s+/g, '-').toLowerCase()}-marketing-image.jpg`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (err) {
-      console.error('Error downloading image:', err);
-      setError('Failed to download image');
-    }
-  };
-  
-  // Send image to WhatsApp
-  const sendToWhatsApp = async () => {
-    if (!resultImage || !form.phoneNumber) return;
-    
-    setWhatsappLoading(true);
-    try {
-      // Create WhatsApp message with image URL
-      const data = new FormData();
-      data.append("imageUrl", resultImage);
-      data.append("phoneNumber", form.phoneNumber);
-      data.append("message", `Here's your marketing image for ${form.productName}!`);
-      
-      const response = await fetch("/api/send-whatsapp", {
-        method: "POST",
-        body: data
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to send WhatsApp message");
-      }
-      
-      setWhatsappSent(true);
-    } catch (err: any) {
-      console.error('Error sending WhatsApp:', err);
-      setError('Failed to send WhatsApp: ' + err.message);
-    } finally {
-      setWhatsappLoading(false);
-    }
-  };
-
   return (
     <div className="container py-8">
       <div className="max-w-4xl mx-auto">
@@ -231,228 +43,130 @@ export default function ImagePostPage() {
           </div>
         </div>
 
-        <Card className="mb-8">
-          <CardHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <ImageIcon className="h-6 w-6 text-orange-700" />
-              </div>
-              <CardTitle className="text-2xl">Image Post Generator</CardTitle>
-            </div>
-            <p className="text-muted-foreground text-sm mt-2">
-              Upload your product image and details to generate a professional marketing image with your brand.
-            </p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Image Upload */}
-              <div>
-                <Label htmlFor="image" className="block mb-2 font-medium">Product Image <span className="text-red-500">*</span></Label>
-                <div className="flex items-center gap-4">
-                  <Input
-                    id="image"
-                    name="image"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    ref={fileInputRef}
-                    className="w-full"
-                    disabled={loading}
-                  />
-                  {imagePreview && (
-                    <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded border" />
-                  )}
-                </div>
-              </div>
-              {/* Company Name */}
-              <div>
-                <Label htmlFor="companyName">Company Name <span className="text-red-500">*</span></Label>
-                <Input
-                  id="companyName"
-                  name="companyName"
-                  value={form.companyName}
-                  onChange={handleChange}
-                  placeholder="Your Company"
-                  required
-                  disabled={loading}
-                />
-              </div>
-              {/* Product Name */}
-              <div>
-                <Label htmlFor="productName">Product Name <span className="text-red-500">*</span></Label>
-                <Input
-                  id="productName"
-                  name="productName"
-                  value={form.productName}
-                  onChange={handleChange}
-                  placeholder="Product Name"
-                  required
-                  disabled={loading}
-                />
-              </div>
-              {/* Price */}
-              <div>
-                <Label htmlFor="price">Price <span className="text-red-500">*</span></Label>
-                <Input
-                  id="price"
-                  name="price"
-                  value={form.price}
-                  onChange={handleChange}
-                  placeholder="e.g. ₹499"
-                  required
-                  disabled={loading}
-                />
-              </div>
-              {/* Tagline */}
-              <div>
-                <Label htmlFor="tagline">Tagline</Label>
-                <Input
-                  id="tagline"
-                  name="tagline"
-                  value={form.tagline}
-                  onChange={handleChange}
-                  placeholder="e.g. Best in class!"
-                  disabled={loading}
-                />
-              </div>
-              {/* Address */}
-              <div>
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  name="address"
-                  value={form.address}
-                  onChange={handleChange}
-                  placeholder="e.g. 123 Main St, Mumbai"
-                  disabled={loading}
-                />
-              </div>
-              {/* Product Type */}
-              <div>
-                <Label htmlFor="productType">Product Type</Label>
-                <Select 
-                  disabled={loading}
-                  value={form.productType} 
-                  onValueChange={(value) => handleSelectChange("productType", value)}
-                >
-                  <SelectTrigger id="productType">
-                    <SelectValue placeholder="Select product type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">General</SelectItem>
-                    <SelectItem value="food">Food</SelectItem>
-                    <SelectItem value="beverage">Beverage</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {/* WhatsApp Phone Number */}
-              <div>
-                <Label htmlFor="phoneNumber">WhatsApp Number (for delivery)</Label>
-                <Input
-                  id="phoneNumber"
-                  name="phoneNumber"
-                  value={form.phoneNumber}
-                  onChange={handleChange}
-                  placeholder="e.g. +919876543210"
-                  disabled={loading}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Include country code. Optional - for sending the image via WhatsApp.
-                </p>
-              </div>
-              {/* Error */}
-              {error && (
-                <div className="text-red-500 text-sm p-3 bg-red-50 rounded border border-red-100">
-                  {error}
-                </div>
-              )}
-              {/* API Retry Info */}
-              {apiRetries > 0 && loading && (
-                <div className="text-amber-700 text-sm p-2 bg-amber-50 rounded border border-amber-100">
-                  Retrying... (Attempt {apiRetries + 1}/3)
-                </div>
-              )}
-              {/* Actions */}
-              <div className="flex gap-3">
-                <Button type="submit" className="w-full flex items-center justify-center" disabled={loading}>
-                  {loading ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : <Upload className="h-5 w-5 mr-2" />}
-                  {loading ? "Generating..." : "Generate Image"}
-                </Button>
-                <Button type="button" variant="outline" className="w-12 p-0" onClick={handleReset} disabled={loading} title="Reset">
-                  <RefreshCw className="h-5 w-5" />
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Result */}
-        {resultImage && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="text-xl">Generated Marketing Image</CardTitle>
-              <CardDescription>
-                Created with AI using OpenAI's GPT-Image-1 model
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center">
-                <img src={resultImage} alt="Generated" className="w-full max-w-md mx-auto rounded-lg shadow-lg mb-6" />
-                <div className="flex flex-wrap gap-4 justify-center">
-                  <Button 
-                    variant="outline"
-                    className="flex items-center gap-2"
-                    onClick={handleDownload}
-                  >
-                    <Download className="h-4 w-4" />
-                    Download Image
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    onClick={handleReset}
-                    className="flex items-center gap-2"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    Create Another
-                  </Button>
-                </div>
-                
-                {/* WhatsApp Integration */}
-                {form.phoneNumber && (
-                  <div className="mt-6 w-full max-w-md">
-                    <div className="border-t pt-4 mt-2">
-                      <h3 className="font-medium mb-3">Send via WhatsApp</h3>
-                      
-                      {whatsappSent ? (
-                        <div className="bg-green-50 text-green-700 p-3 rounded border border-green-100 flex items-center gap-2">
-                          <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          Image successfully sent to WhatsApp!
+        {showForm ? (
+          <ImageGenerationForm onBack={() => setShowForm(false)} />
+        ) : (
+          <>
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Transform Your Product Images Into Marketing Materials</CardTitle>
+                <CardDescription>
+                  Generate professional marketing images with automated text placement and stunning visual enhancements
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-8 mb-8">
+                  <div>
+                    <h3 className="text-xl font-bold mb-4">Create Professional Marketing Images</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Our AI-powered Image Post Generator creates professional marketing materials
+                      from your product photos in seconds.
+                    </p>
+                    
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-orange-700 text-sm font-medium">1</span>
                         </div>
-                      ) : (
-                        <Button 
-                          variant="default" 
-                          className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700" 
-                          onClick={sendToWhatsApp}
-                          disabled={whatsappLoading}
-                        >
-                          {whatsappLoading ? (
-                            <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                          ) : (
-                            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                            </svg>
-                          )}
-                          {whatsappLoading ? "Sending..." : "Send to WhatsApp"}
-                        </Button>
-                      )}
+                        <div>
+                          <h4 className="font-medium">Upload your product image</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Start with a clear, high-quality image of your product.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-orange-700 text-sm font-medium">2</span>
+                        </div>
+                        <div>
+                          <h4 className="font-medium">Add your brand details</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Enter your company name, product information, and pricing.
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-orange-700 text-sm font-medium">3</span>
+                        </div>
+                        <div>
+                          <h4 className="font-medium">Generate your marketing image</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Our AI automatically creates a professional marketing image with perfect text placement.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-8">
+                      <Button 
+                        onClick={() => setShowForm(true)} 
+                        size="lg" 
+                        className="w-full md:w-auto flex items-center gap-2"
+                      >
+                        Create Image
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                )}
+                  
+                  <div className="relative">
+                    <div className="aspect-square rounded-lg bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-6">
+                      <div className="relative">
+                        <div className="w-full h-full absolute top-2 left-2 bg-black/5 rounded-lg"></div>
+                        <div className="bg-white shadow-lg rounded-lg p-4 relative">
+                          <div className="text-xs text-center font-medium text-orange-700 mb-2">COMPANY NAME</div>
+                          <div className="w-32 h-32 mx-auto bg-gray-100 rounded-lg mb-2 flex items-center justify-center">
+                            <ImageIcon className="h-8 w-8 text-gray-400" />
+                          </div>
+                          <div className="text-center font-medium mb-1">Product Name</div>
+                          <div className="text-xs text-center text-muted-foreground mb-2">Your amazing tagline here</div>
+                          <div className="text-xs text-right font-bold text-orange-600">₹499</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-r from-orange-50 to-yellow-50 p-6 rounded-lg border border-orange-100">
+                  <h3 className="text-xl font-bold mb-4">Features</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex flex-col">
+                      <h4 className="font-medium">Perfect Text Placement</h4>
+                      <p className="text-sm text-muted-foreground">Automatically positions text elements for optimal design</p>
+                    </div>
+                    <div className="flex flex-col">
+                      <h4 className="font-medium">Product Type Optimization</h4>
+                      <p className="text-sm text-muted-foreground">Special enhancements for food, beverages, and other products</p>
+                    </div>
+                    <div className="flex flex-col">
+                      <h4 className="font-medium">WhatsApp Integration</h4>
+                      <p className="text-sm text-muted-foreground">Send your generated images directly to customers</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <div className="bg-gradient-to-r from-orange-50 to-red-50 p-8 rounded-lg text-center">
+              <h2 className="text-2xl font-bold mb-4">Start Creating Professional Marketing Images Today</h2>
+              <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
+                Join thousands of businesses using AUTOPOST's Image Post Generator to create
+                stunning marketing materials in seconds.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button onClick={() => setShowForm(true)} size="lg">
+                  Create Image Now
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link href="/pricing">View Pricing</Link>
+                </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </>
         )}
       </div>
     </div>
