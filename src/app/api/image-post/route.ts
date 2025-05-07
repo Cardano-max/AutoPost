@@ -86,7 +86,10 @@ export async function POST(request: NextRequest) {
           model: "gpt-image-1", // Using GPT-Image-1 as it's the newest and most advanced model
           prompt: promptToUse,
           image: imageFile,
-          n: 1
+          n: 1,
+          quality: "low", // Use low quality to save credits during testing
+          size: "1024x1024", // Standard size
+          response_format: "b64_json" // Request base64 encoded image
         });
         
         console.log("[API] Successfully generated image");
@@ -112,22 +115,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (!result?.data?.[0]?.url) {
+    // Check for b64_json in response (GPT-Image-1 returns b64_json not url)
+    if (!result?.data?.[0]?.b64_json) {
+      console.error("[API] Response data structure:", JSON.stringify(result?.data || {}).substring(0, 100));
       throw new Error("No image was generated");
     }
 
-    // Get the generated image URL
-    const imageUrl = result.data[0].url;
+    // Get the generated image as base64
+    const imageBase64 = result.data[0].b64_json;
+    
+    // Convert base64 to a data URL for direct embedding
+    const imageDataUrl = `data:image/png;base64,${imageBase64}`;
 
-    if (!imageUrl) {
-      throw new Error('No image URL in OpenAI response');
-    }
-
-    // Return the generated image URL and details
+    // Return the generated image data and details
     return NextResponse.json({
       success: true,
       message: 'Marketing image generated successfully',
-      imageUrl,
+      imageData: imageDataUrl,
       productDetails,
       usedModel: "gpt-image-1"
     });
