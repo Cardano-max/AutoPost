@@ -93,8 +93,7 @@ export async function POST(request: NextRequest) {
           prompt: promptToUse,
           n: 1,
           quality: "low", // Standard quality for festival posts
-          size: "1024x1024", // Standard size
-          response_format: "b64_json" // Explicitly request base64 format
+          size: "1024x1024" // Standard size
         });
         
         console.log("[API] Successfully generated festival image");
