@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
           model: "gpt-image-1", // Using latest GPT-Image-1 model
           prompt: promptToUse,
           n: 1,
-          quality: "standard", // Standard quality for festival posts
+          quality: "low", // Standard quality for festival posts
           size: "1024x1024" // Standard size
         });
         
