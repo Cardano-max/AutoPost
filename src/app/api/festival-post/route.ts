@@ -89,11 +89,12 @@ export async function POST(request: NextRequest) {
         
         // Use OpenAI v4 SDK format for images.create
         result = await openai.images.generate({
-          model: "AutoPostAi", // Using latest GPT-Image-1 model
+          model: "AutoPostAi", // Using company's image model
           prompt: promptToUse,
           n: 1,
-          quality: "low", // Standard quality for festival posts
-          size: "1024x1024" // Standard size
+          quality: "auto", // Auto quality for production use
+          size: "auto", // Auto size for optimal results
+          moderation: "low" // Less restrictive filtering
         });
         
         console.log("[API] Successfully generated festival image");

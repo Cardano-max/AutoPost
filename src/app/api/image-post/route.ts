@@ -83,12 +83,12 @@ export async function POST(request: NextRequest) {
         
         // Use the proper OpenAI v4 SDK format for images.edit
         result = await openai.images.edit({
-          model: "gpt-image-1", // Using GPT-Image-1 as it's the newest and most advanced model
+          model: "AutoPostAi", // Using company's image model
           prompt: promptToUse,
           image: imageFile,
           n: 1,
-          quality: "low", // Use low quality to save credits during testing
-          size: "1024x1024" // Standard size
+          quality: "auto", // Auto quality for production use
+          size: "auto" // Auto size for optimal results
         });
         
         console.log("[API] Successfully generated image");
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
       message: 'Marketing image generated successfully',
       imageUrl,
       productDetails,
-      usedModel: "gpt-image-1"
+      usedModel: "AutoPostAi"
     });
   } catch (error: any) {
     console.error("[API] Error generating marketing image:", error);
