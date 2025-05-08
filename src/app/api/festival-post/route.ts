@@ -92,8 +92,8 @@ export async function POST(request: NextRequest) {
           model: "gpt-image-1", // Using GPT-Image-1 model (supported by OpenAI)
           prompt: promptToUse,
           n: 1,
-          quality: "auto", // Auto quality for production use
-          size: "auto", // Auto size for optimal results
+          quality: "auto", // Low quality for faster generation to avoid timeouts
+          size: "auto", // Standard size instead of auto to improve speed
           moderation: "low" // Less restrictive filtering
         });
         
@@ -162,6 +162,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         error: 'API configuration error. Please contact support.' 
       }, { status: 500 });
+    }
+    
+    if (error.message?.includes('timeout') || error.message?.includes('timed out')) {
+      return NextResponse.json({ 
+        error: 'The image generation is taking longer than expected. Please try again with a simpler prompt or try later.' 
+      }, { status: 504 });
     }
     
     // Generic error response
