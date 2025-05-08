@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
         
         // Use OpenAI v4 SDK format for images.create
         result = await openai.images.generate({
-          model: "AutoPostAi", // Using company's image model
+          model: "gpt-image-1", // Using GPT-Image-1 model (supported by OpenAI)
           prompt: promptToUse,
           n: 1,
           quality: "auto", // Auto quality for production use
