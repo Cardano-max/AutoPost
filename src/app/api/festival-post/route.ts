@@ -93,7 +93,8 @@ export async function POST(request: NextRequest) {
           prompt: promptToUse,
           n: 1,
           quality: "low", // Standard quality for festival posts
-          size: "1024x1024" // Standard size
+          size: "1024x1024", // Standard size
+          response_format: "b64_json" // Explicitly request base64 format
         });
         
         console.log("[API] Successfully generated festival image");
@@ -119,14 +120,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get the generated image url or data
-    if (!result?.data?.[0]?.url) {
+    // Check for the image data in the response
+    if (!result?.data?.[0]) {
       console.error("[API] Response data structure:", JSON.stringify(result?.data || {}).substring(0, 100));
       throw new Error("No festival image was generated");
     }
 
-    // Get the generated image URL
-    const imageUrl = result.data[0].url;
+    // Get the generated image data - either from b64_json or url
+    let imageUrl;
+    if (result.data[0].b64_json) {
+      // Convert base64 to data URL that can be used in an img tag
+      imageUrl = `data:image/png;base64,${result.data[0].b64_json}`;
+      console.log("[API] Successfully generated image as base64");
+    } else if (result.data[0].url) {
+      imageUrl = result.data[0].url;
+      console.log("[API] Successfully generated image as URL");
+    } else {
+      console.error("[API] Unexpected response format:", Object.keys(result.data[0]));
+      throw new Error("Unexpected response format from image generation");
+    }
     
     // Return the generated image data and details
     return NextResponse.json({
